@@ -38,6 +38,14 @@ h1 { margin: 0.3em 0; font-size: 2.1rem; text-shadow: 0 2px 6px rgba(0,0,0,0.5);
   box-shadow: 0 6px 20px rgba(0,0,0,0.3);
 }
 
+#menu-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1rem;
+}
+
 #controls {
   display: flex;
   justify-content: center;
@@ -56,6 +64,8 @@ button {
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 10px rgba(76,175,80,0.4);
+  width: auto;
+  min-width: 200px;
 }
 button:hover:not(:disabled) {
   transform: translateY(-2px);
@@ -262,11 +272,13 @@ footer {
 <div id="menu">
   <h1>Grasshopper Daily</h1>
   <p id="subtitle">Hand-crafted path puzzles – one per day</p>
-  <button onclick="startToday()">🎯 Play Today's Puzzle</button>
-  <button onclick="showArchive()">📚 Play Previous Puzzles</button>
-  <button onclick="showStats()">📊 View Stats</button>
-  <button onclick="showHowTo()">❓ How to Play</button><br>
-  <button onclick="showLegal()">📜 Legal & Contact</button>
+  <div id="menu-buttons">
+    <button onclick="startToday()">🎯 Play Today's Puzzle</button>
+    <button onclick="showArchive()">📚 Play Previous Puzzles</button>
+    <button onclick="showStats()">📊 View Stats</button>
+    <button onclick="showHowTo()">❓ How to Play</button>
+    <button onclick="showLegal()">📜 Legal & Contact</button>
+  </div>
 </div>
 
 <div id="archive-container" style="display:none">
