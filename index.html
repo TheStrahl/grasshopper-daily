@@ -8,13 +8,13 @@
 <meta name="keywords" content="grasshopper daily, path puzzle, daily puzzle, logic game, jumping puzzle, brain teaser, free puzzle game">
 <meta property="og:title" content="Grasshopper Daily – Path Puzzle">
 <meta property="og:description" content="Leap across the grid in this daily path puzzle challenge. Visit every cell exactly once with strategic jumps!">
-<meta property="og:url" content="https://grasshopper.game">
+<meta property="og:url" content="https://grasshoppergame.com">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://grasshopper.game/favicon.png"> <!-- Replace with actual image URL -->
+<meta property="og:image" content="https://grasshoppergame.com/favicon.png"> <!-- Replace with actual image URL -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Grasshopper Daily – Path Puzzle">
 <meta name="twitter:description" content="Leap across the grid in this daily path puzzle challenge. Visit every cell exactly once with strategic jumps!">
-<meta name="twitter:image" content="https://grasshopper.game/favicon.png"> <!-- Replace with actual image URL -->
+<meta name="twitter:image" content="https://grasshoppergame.com/favicon.png"> <!-- Replace with actual image URL -->
 <style>
   body {
   font-family: system-ui, -apple-system, sans-serif;
@@ -820,7 +820,7 @@ function shareResults() {
   const size = currentPuzzle.size;
   const stars = 3 - Math.min(hintCount, 3);
   const starText = '★'.repeat(stars) + '☆'.repeat(3 - stars);
-  const text = `🎉 Grasshopper Daily – ${shareDate} (${size}×${size}) Solved! ${starText}\n⏱ Time: ${timeStr}\nPlay here: https://grasshopper.game\n#GrasshopperDaily`;
+  const text = `🎉 Grasshopper Daily – ${shareDate} (${size}×${size}) Solved! ${starText}\n⏱ Time: ${timeStr}\nPlay here: https://grasshoppergame.com\n#GrasshopperDaily`;
 
   navigator.clipboard.writeText(text).then(() => {
     alert('Copied to clipboard! Paste into Discord or X.');
