@@ -5,111 +5,274 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Grasshopper Daily – Path Puzzle</title>
 <meta name="description" content="Grasshopper Daily is a free daily path puzzle game where you leap across a grid like a grasshopper. Solve hand-crafted puzzles, track your streaks, and share your results!">
-
+<meta name="keywords" content="grasshopper daily, path puzzle, daily puzzle, logic game, jumping puzzle, brain teaser, free puzzle game">
+<meta property="og:title" content="Grasshopper Daily – Path Puzzle">
+<meta property="og:description" content="Leap across the grid in this daily path puzzle challenge. Visit every cell exactly once with strategic jumps!">
+<meta property="og:url" content="https://grasshoppergame.com">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://grasshoppergame.com/favicon.png"> <!-- Replace with actual image URL -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Grasshopper Daily – Path Puzzle">
+<meta name="twitter:description" content="Leap across the grid in this daily path puzzle challenge. Visit every cell exactly once with strategic jumps!">
+<meta name="twitter:image" content="https://grasshoppergame.com/favicon.png"> <!-- Replace with actual image URL -->
 <style>
   body {
-    font-family: system-ui, -apple-system, sans-serif;
-    margin: 0;
-    padding: 10px;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    text-align: center;
-  }
-  h1 { margin: 0.3em 0; font-size: 2.1rem; text-shadow: 0 2px 6px rgba(0,0,0,0.5); }
-  #subtitle { opacity: 0.9; margin-bottom: 1rem; font-size: 1rem; }
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 10px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  text-align: center;
+}
+h1 { margin: 0.3em 0; font-size: 2.1rem; text-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+#subtitle { opacity: 0.9; margin-bottom: 1rem; font-size: 1rem; }
 
-  #menu, #game-container, #archive-container, #stats-container, #howto-container, #legal-container {
-    background: rgba(255,255,255,0.12);
-    backdrop-filter: blur(12px);
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin: 1rem auto;
-    max-width: 700px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-  }
+#menu, #game-container, #archive-container, #stats-container, #howto-container, #legal-container {
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 1rem;
+  margin: 1rem auto;
+  max-width: 700px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
 
-  #menu-buttons {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    margin-top: 1rem;
-  }
+#menu-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 1rem;
+}
 
-  button {
-    font-size: 0.95rem;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(145deg, #4caf50, #388e3c);
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 10px rgba(76,175,80,0.4);
-    width: 100%;
-    max-width: 320px;
-  }
-  button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(76,175,80,0.55); }
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
+#controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
 
-  .mark-mode-on { background: linear-gradient(145deg, #2196f3, #1976d2) !important; }
-  #clear-marks { background: linear-gradient(145deg, #9c27b0, #7b1fa2) !important; }
-  #share-btn { background: linear-gradient(145deg, #039be5, #0288d1) !important; }
-  #hint-btn { background: linear-gradient(145deg, #ff9800, #f57c00) !important; }
+button {
+  font-size: 0.95rem;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #4caf50, #388e3c);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(76,175,80,0.4);
+  width: auto;
+  min-width: 200px;
+}
+button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(76,175,80,0.55);
+}
+button:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; }
 
-  #timer { font-size: 2rem; font-weight: bold; color: #ffeb3b; margin: 0.5rem 0; font-family: monospace; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
-  #puzzle-title-and-timer { display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
-  #status { font-size: 1.2rem; padding: 0.8rem; border-radius: 10px; min-height: 2.2rem; background: rgba(0,0,0,0.2); margin: 0.8rem 0; }
+.mark-mode-on { background: linear-gradient(145deg, #2196f3, #1976d2) !important; }
+#clear-marks { background: linear-gradient(145deg, #9c27b0, #7b1fa2) !important; }
+#share-btn { background: linear-gradient(145deg, #039be5, #0288d1) !important; }
+#hint-btn { background: linear-gradient(145deg, #ff9800, #f57c00) !important; }
 
-  #board {
-    display: grid;
-    gap: 4px;
-    justify-content: center;
-    margin: 1rem auto;
-    padding: 1rem;
-    background: rgba(255,255,255,0.08);
-    border-radius: 14px;
-    max-width: 90vw;
-    width: min(90vw, 420px);
-  }
+#timer {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ffeb3b;
+  margin: 0.5rem 0;
+  font-family: monospace;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
 
-  .cell {
-    aspect-ratio: 1;
-    background: linear-gradient(145deg, #ffffff22, #f0f8ff33);
-    border: 2px solid rgba(255,255,255,0.25);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: clamp(1.2rem, 3.5vw, 1.5rem);
-    font-weight: bold;
-    color: #111;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-  }
+#puzzle-title-and-timer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
 
-  .cell:hover:not(.visited):not([data-mark-color]) { transform: scale(1.05); box-shadow: 0 5px 12px rgba(0,0,0,0.3); }
-  .cell.visited { background: #777 !important; color: #aaa; transform: scale(0.95); cursor: default; }
+#status {
+  font-size: 1.2rem;
+  padding: 0.8rem;
+  border-radius: 10px;
+  min-height: 2.2rem;
+  background: rgba(0,0,0,0.2);
+  margin: 0.8rem 0;
+}
 
-  .cell.highlight { border-color: #ffeb3b !important; box-shadow: 0 0 18px #ffeb3b88, inset 0 0 9px #ffeb3b44; background: linear-gradient(145deg, #fffde7, #fff176) !important; animation: pulse 1.2s infinite; }
-  .cell.hint { background: linear-gradient(145deg, #b3e5fc, #82b1ff) !important; border-color: #2196f3 !important; box-shadow: 0 0 18px #2196f388; animation: hint-pulse 1.5s infinite; }
+#board {
+  display: grid;
+  gap: 4px;
+  justify-content: center;
+  margin: .8rem auto;
+  padding: .7rem;
+  background: rgba(255,255,255,0.08);
+  border-radius: 14px;
+  max-width: 90vw;
+  width: min(90vw, 420px);
+}
 
-  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-  @keyframes hint-pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+.cell {
+  aspect-ratio: 1;
+  background: linear-gradient(145deg, #ffffff22, #f0f8ff33);
+  border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1.2rem, 3.5vw, 1.5rem);
+  font-weight: bold;
+  color: #111;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
 
-  #back-btn { position: fixed; top: 10px; left: 10px; z-index: 100; background: rgba(255,255,255,0.2); backdrop-filter: blur(8px); padding: 6px 12px; font-size: 0.9rem; }
+.cell:hover:not(.visited):not([data-mark-color]) {
+  transform: scale(1.05);
+  box-shadow: 0 5px 12px rgba(0,0,0,0.3);
+}
 
-  footer { font-size: 0.8rem; opacity: 0.8; margin-top: 2rem; text-align: center; position: fixed; bottom: 10px; left: 0; width: 100%; z-index: 50; }
+.cell.visited {
+  background: #777 !important;
+  color: #aaa;
+  transform: scale(0.95);
+  cursor: default;
+}
 
-  @media (max-width: 480px) {
-    #board { gap: 3px; padding: 0.6rem; width: 96vw; }
-    button { width: 90%; max-width: none; padding: 12px 16px; }
-    h1 { font-size: 1.8rem; }
-    #timer { font-size: 1.6rem; }
-    #stars { font-size: 1.3rem; }
-  }
+.cell.highlight {
+  border-color: #ffeb3b !important;
+  box-shadow: 0 0 18px #ffeb3b88, inset 0 0 9px #ffeb3b44;
+  background: linear-gradient(145deg, #fffde7, #fff176) !important;
+  animation: pulse 1.2s infinite;
+}
+
+.cell.hint {
+  background: linear-gradient(145deg, #b3e5fc, #82b1ff) !important;
+  border-color: #2196f3 !important;
+  box-shadow: 0 0 18px #2196f388;
+  animation: hint-pulse 1.5s infinite;
+}
+
+@keyframes hint-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.cell[data-mark-color="1"] { border-color: #42a5f5 !important; background: linear-gradient(145deg, #e3f2fd, #90caf9) !important; }
+.cell[data-mark-color="2"] { border-color: #66bb6a !important; background: linear-gradient(145deg, #e8f5e9, #a5d6a7) !important; }
+.cell[data-mark-color="3"] { border-color: #ef5350 !important; background: linear-gradient(145deg, #ffebee, #ef9a9a) !important; }
+.cell[data-mark-color="4"] { border-color: #ab47bc !important; background: linear-gradient(145deg, #f3e5f5, #ce93d8) !important; }
+
+#back-btn {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 100;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(8px);
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+
+#archive-days, #completed-puzzles {
+  list-style: none;
+  padding: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+#archive-days li, #completed-puzzles li {
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  margin: 8px 0;
+  padding: 12px;
+  transition: background 0.3s;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+#archive-days li:hover { background: rgba(255,255,255,0.2); }
+
+#victory-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+
+#victory-content {
+  background: rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  text-align: center;
+  max-width: 80%;
+}
+
+#victory-content h2 {
+  margin-top: 0;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+}
+
+#victory-content p {
+  font-size: 1.2rem;
+}
+
+#close-modal {
+  background: linear-gradient(145deg, #f44336, #d32f2f);
+  margin-left: 8px;
+}
+
+#stars {
+  font-size: 1.5rem;
+  color: #ffeb3b;
+  margin: 0.5rem 0;
+}
+
+footer {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  margin-top: 2rem;
+  text-align: center;
+  position: fixed;
+  bottom: 10px;
+  left: 0;
+  width: 100%;
+  z-index: 50;
+}
+
+@media (min-width: 768px) {
+  #board { gap: 5px; padding: 1rem; max-width: 480px; }
+  .cell { font-size: 1.6rem; }
+}
+
+@media (max-width: 480px) {
+  #controls { flex-direction: column; align-items: center; gap: 8px; }
+  button { width: 90%; max-width: 280px; }
+  .cell { font-size: 1.2rem; }
+  #board { gap: 2px; padding: 0.5rem 0; width: 95vw; }
+  #menu-buttons button { min-width: 0; width: 90%; }
+  h1 { font-size: 1.8rem; }
+  #subtitle { font-size: 0.9rem; }
+  #timer { font-size: 1.5rem; }
+  #stars { font-size: 1.2rem; }
+  #status { font-size: 1rem; }
+  footer { font-size: 0.7rem; bottom: 5px; }
+}
 </style>
 </head>
 <body>
@@ -151,8 +314,8 @@
     <li>You can't land on visited cells or go out of bounds.</li>
     <li>Goal: Visit all cells without getting stuck.</li>
     <li>Note: Puzzles may have multiple solutions!</li>
-    <li>Use Mark Mode (✏️) with 4 colors to plan paths without penalties.</li>
-    <li>Hints (💡) suggest moves but deduct stars (out of 3). Stars show in shares.</li>
+    <li>Use Mark Mode (✏️) with 4 colors to plan paths without penalties—great for trial and error.</li>
+    <li>Hints (💡) suggest moves based on one possible solution but deduct stars (out of 3). Stars show in shares.</li>
   </ul>
   <button onclick="showMenu()">← Back to Menu</button>
 </div>
@@ -192,7 +355,6 @@
   <div id="victory-content">
     <h2>🎉 Congratulations!</h2>
     <p>You solved the puzzle in <span id="victory-time"></span>!</p>
-    <p>Hints used: <span id="victory-hint-count">0</span></p>
     <button id="share-btn" onclick="shareResults()">📤 Share Results</button>
     <button id="close-modal" onclick="closeModal()">Close</button>
   </div>
@@ -203,55 +365,231 @@
 </footer>
 
 <script>
-// ==================== STATE ====================
+// State
 let currentPuzzle = null;
 let visited, marked, currentPos, highlights, history = [], moveHistory = [], markMode = false;
 let startTime, timerInterval, puzzleDateStr;
 let solutionPath = [];
 let hintCount = 0;
-let isAlreadySolved = false;
 
-// ==================== CONSTANTS ====================
+// Levels folder
 const LEVELS_FOLDER = './levels/';
 const STATS_KEY = 'grasshopper_stats';
 
-// ==================== HELPERS ====================
+// Format filename: month_day_year.json
 function getFileName(dateStr) {
   const [year, monthStr, dayStr] = dateStr.split('-');
-  return `${parseInt(monthStr)}_${parseInt(dayStr)}_${year}.json`;
+  const month = parseInt(monthStr);
+  const day = parseInt(dayStr);
+  return `${month}_${day}_${year}.json`;
 }
 
-function formatTime(ms) {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
-  const ss = s % 60;
-  return `${m}:${ss.toString().padStart(2,'0')}`;
+// Load puzzle by date string (YYYY-MM-DD)
+async function loadPuzzleByDate(dateStr) {
+  const fileName = getFileName(dateStr);
+  const url = LEVELS_FOLDER + fileName;
+
+  console.log(`Attempting to load puzzle for ${dateStr} from ${url}`);
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.log(`No puzzle found for ${dateStr}: HTTP ${response.status}`);
+      return null;
+    }
+    const data = await response.json();
+    if (data.size && data.grid && data.grid.length === data.size) {
+      console.log(`Successfully loaded puzzle for ${dateStr}`);
+      return {
+        size: data.size,
+        grid: data.grid,
+        solution: data.solution || []
+      };
+    } else {
+      console.log(`Invalid puzzle data for ${dateStr}`);
+    }
+  } catch (e) {
+    console.log(`Failed to load puzzle for ${dateStr}: ${e}`);
+  }
+  return null;
 }
 
-// ==================== LOAD PUZZLE ====================
-async function loadPuzzle(puzzle, title, dateStr) {
+// Find most recent puzzle (today first, then backwards)
+async function findLatestPuzzle() {
+  const now = new Date();
+  console.log(`Current local date and time: ${now.toLocaleString()}`);
+
+  let year = now.getFullYear();
+  let month = now.getMonth() + 1;
+  let day = now.getDate();
+  let dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+  console.log(`Checking today's puzzle: ${dateStr}`);
+  let puzzle = await loadPuzzleByDate(dateStr);
+  if (puzzle) return { puzzle, dateStr };
+
+  // Previous days
+  let checkDate = new Date(year, month - 1, day);
+  for (let i = 1; i < 366; i++) {
+    checkDate.setDate(checkDate.getDate() - 1);
+    year = checkDate.getFullYear();
+    month = checkDate.getMonth() + 1;
+    day = checkDate.getDate();
+    dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    console.log(`Checking previous day: ${dateStr}`);
+    puzzle = await loadPuzzleByDate(dateStr);
+    if (puzzle) return { puzzle, dateStr };
+  }
+  console.log('No puzzles found in the last year.');
+  return null;
+}
+
+function showMenu() {
+  document.getElementById('menu').style.display = 'block';
+  document.getElementById('archive-container').style.display = 'none';
+  document.getElementById('stats-container').style.display = 'none';
+  document.getElementById('howto-container').style.display = 'none';
+  document.getElementById('legal-container').style.display = 'none';
+  document.getElementById('game-container').style.display = 'none';
+  closeModal();
+}
+
+function showHowTo() {
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('howto-container').style.display = 'block';
+}
+
+function showLegal() {
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('legal-container').style.display = 'block';
+}
+
+async function startToday() {
+  const result = await findLatestPuzzle();
+  if (result) {
+    const { puzzle, dateStr } = result;
+    const [year, monthStr, dayStr] = dateStr.split('-');
+    const month = parseInt(monthStr);
+    const day = parseInt(dayStr);
+    const titleDate = `${month}/${day}/${year}`;
+    const todayStr = `${new Date().getFullYear()}-${(new Date().getMonth()+1).toString().padStart(2,'0')}-${new Date().getDate().toString().padStart(2,'0')}`;
+    const titlePrefix = (dateStr === todayStr) ? "Today's" : "Latest Available";
+    const title = `${titlePrefix} Puzzle (${puzzle.size}×${puzzle.size}) – ${titleDate}`;
+    console.log(`Loading puzzle for date: ${dateStr} with title: ${title}`);
+    loadPuzzle(puzzle, title, dateStr);
+  } else {
+    alert("No puzzles found in /levels/! Add files like 2_21_2026.json");
+  }
+}
+
+async function showArchive() {
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('archive-container').style.display = 'block';
+  document.getElementById('game-container').style.display = 'none';
+
+  const container = document.getElementById('archive-days');
+  container.innerHTML = '<p>Loading existing puzzles...</p>';
+
+  const stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {completed: {}};
+  const completed = stats.completed;
+
+  let checkDate = new Date();
+  checkDate.setDate(checkDate.getDate() - 1); // Start from yesterday
+  const items = [];
+
+  for (let i = 0; i < 60; i++) {
+    const year = checkDate.getFullYear();
+    const month = checkDate.getMonth() + 1;
+    const day = checkDate.getDate();
+    const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    const puzzle = await loadPuzzleByDate(dateStr);
+    if (puzzle) {
+      const titleDate = `${month}/${day}/${year}`;
+      const entry = completed[dateStr];
+      let status = 'Not completed';
+      if (entry) {
+        const stars = 3 - Math.min(entry.hints, 3);
+        const starText = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+        status = `Completed in ${formatTime(entry.time)} ${starText}`;
+      }
+      const li = document.createElement('li');
+      li.textContent = `${titleDate} (${puzzle.size}×${puzzle.size}) - ${status}`;
+      li.onclick = () => loadPuzzle(puzzle, `Archive – ${titleDate} (${puzzle.size}×${puzzle.size})`, dateStr);
+      items.push(li);
+    }
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  container.innerHTML = '';
+  if (items.length === 0) {
+    container.innerHTML = '<p>No puzzles found in /levels/.</p>';
+  } else {
+    items.forEach(item => container.appendChild(item));
+  }
+}
+
+async function showStats() {
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('stats-container').style.display = 'block';
+
+  const stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {completed: {}};
+  const completed = stats.completed;
+
+  // Compute total solved and total time
+  const solvedCount = Object.keys(completed).length;
+  let totalTime = 0;
+  for (let entry of Object.values(completed)) {
+    totalTime += entry.time;
+  }
+
+  // Sort completed dates recent first
+  const sortedDates = Object.keys(completed).sort((a, b) => new Date(b) - new Date(a));
+
+  const ul = document.getElementById('completed-puzzles');
+  ul.innerHTML = '';
+  for (let d of sortedDates) {
+    const entry = completed[d];
+    const stars = 3 - Math.min(entry.hints, 3);
+    const starText = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+    const li = document.createElement('li');
+    li.textContent = `${d} - ${formatTime(entry.time)} ${starText}`;
+    li.style.cursor = 'default';
+    ul.appendChild(li);
+  }
+
+  // Compute streak: consecutive existing puzzles from latest back that are completed
+  let streak = 0;
+  let checkDate = new Date();
+  for (let i = 0; i < 365; i++) {
+    const year = checkDate.getFullYear();
+    const month = checkDate.getMonth() + 1;
+    const day = checkDate.getDate();
+    const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    const hasPuzzle = await loadPuzzleByDate(dateStr) !== null;
+    if (hasPuzzle) {
+      if (dateStr in completed) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  document.getElementById('streak').textContent = streak;
+  document.getElementById('solved-count').textContent = solvedCount;
+  document.getElementById('total-time').textContent = formatTime(totalTime);
+}
+
+function loadPuzzle(puzzle, title, dateStr) {
   currentPuzzle = puzzle;
   puzzleDateStr = dateStr;
   solutionPath = puzzle.solution || [];
   hintCount = 0;
-  isAlreadySolved = false;
-
-  // Check if already completed
-  const stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {completed: {}};
-  const saved = stats.completed[dateStr];
-
-  if (saved) {
-    isAlreadySolved = true;
-    hintCount = saved.hints || 0;
-    updateStars();
-
-    // Auto-show victory
-    document.getElementById('victory-time').textContent = formatTime(saved.time);
-    document.getElementById('victory-hint-count').textContent = saved.hints || 0;
-    document.getElementById('victory-modal').style.display = 'flex';
-  }
-
+  updateStars();
   document.getElementById('puzzle-title').textContent = title;
+
+  console.log(`Puzzle loaded for ${dateStr}: Size ${puzzle.size}x${puzzle.size}, Grid: ${JSON.stringify(puzzle.grid)}, Solution: ${JSON.stringify(solutionPath)}`);
+
   resetPuzzle();
 
   document.getElementById('menu').style.display = 'none';
@@ -261,42 +599,35 @@ async function loadPuzzle(puzzle, title, dateStr) {
   document.getElementById('legal-container').style.display = 'none';
   document.getElementById('game-container').style.display = 'block';
 
-  if (!isAlreadySolved) {
-    startTime = Date.now();
-    timerInterval = setInterval(() => {
-      document.getElementById('timer').textContent = formatTime(Date.now() - startTime);
-    }, 200);
-  } else {
-    document.getElementById('timer').textContent = formatTime(saved.time);
-  }
+  startTime = Date.now();
+  timerInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    document.getElementById('timer').textContent = formatTime(elapsed);
+  }, 200);
 }
 
 function resetPuzzle() {
   const s = currentPuzzle.size;
-  visited = Array(s).fill().map(()=>Array(s).fill(false));
-  marked = Array(s).fill().map(()=>Array(s).fill(0));
+  visited   = Array(s).fill().map(()=>Array(s).fill(false));
+  marked    = Array(s).fill().map(()=>Array(s).fill(0));
   currentPos = {r:-1,c:-1};
   highlights = new Set();
-  history = [];
+  history    = [];
   moveHistory = [];
-  markMode = false;
-
-  if (isAlreadySolved) {
-    visited = Array(s).fill().map(()=>Array(s).fill(true));
-    currentPos = solutionPath.length ? {r: solutionPath[solutionPath.length-1][0], c: solutionPath[solutionPath.length-1][1]} : {r:0,c:0};
-  }
+  markMode   = false;
+  hintCount = 0;
+  updateStars();
 
   document.getElementById('undo-btn').disabled = true;
   document.getElementById('mark-toggle').textContent = '✏️ Mark: OFF';
   document.getElementById('mark-toggle').classList.remove('mark-mode-on');
   document.getElementById('clear-marks').disabled = true;
-  document.getElementById('status').textContent = isAlreadySolved ? '✅ Already Solved!' : 'Click any cell to begin';
+  document.getElementById('status').textContent = 'Click any cell to begin';
 
   drawBoard();
   updateHighlights();
 }
 
-// ==================== DRAW & INTERACTION ====================
 function drawBoard() {
   const board = document.getElementById('board');
   const s = currentPuzzle.size;
@@ -346,7 +677,10 @@ function onCellClick(r, c) {
     return;
   }
 
-  history.push({ visited: visited.map(row=>[...row]), currentPos: {...currentPos} });
+  history.push({
+    visited: visited.map(row=>[...row]),
+    currentPos: {...currentPos}
+  });
 
   visited[r][c] = true;
   marked[r][c] = 0;
@@ -369,8 +703,10 @@ function onCellClick(r, c) {
 
   if (highlights.size === 0 && visited.flat().includes(false)) {
     document.getElementById('status').textContent = '💀 Dead End – No moves left! Restart or Undo.';
+    document.getElementById('status').style.background = 'rgba(244,67,54,0.3)';
   } else {
     document.getElementById('status').textContent = 'Keep jumping!';
+    document.getElementById('status').style.background = '';
   }
 
   if (!visited.flat().includes(false)) {
@@ -379,15 +715,13 @@ function onCellClick(r, c) {
     saveCompletion(puzzleDateStr, elapsed);
     document.getElementById('status').textContent = `🎉 Solved in ${formatTime(elapsed)}!`;
     document.getElementById('victory-time').textContent = formatTime(elapsed);
-    document.getElementById('victory-hint-count').textContent = hintCount;
     document.getElementById('victory-modal').style.display = 'flex';
   }
 }
 
-// ==================== HINT & STARS ====================
 function getHint() {
   if (solutionPath.length === 0) {
-    document.getElementById('status').textContent = 'No hints available for this puzzle.';
+    document.getElementById('status').textContent = 'No hints available for this puzzle. Note: Puzzles may have multiple solutions.';
     return;
   }
 
@@ -398,7 +732,7 @@ function getHint() {
   const len = playerPath.length;
 
   if (len >= solutionPath.length) {
-    document.getElementById('status').textContent = 'Beyond hint path.';
+    document.getElementById('status').textContent = 'Beyond hint path. Note: Multiple solutions possible.';
     return;
   }
 
@@ -415,9 +749,9 @@ function getHint() {
     const cell = document.querySelector(`[data-r="${next[0]}"][data-c="${next[1]}"]`);
     cell.classList.add('hint');
     setTimeout(() => cell.classList.remove('hint'), 2000);
-    document.getElementById('status').textContent = 'Hint: Next suggested move highlighted.';
+    document.getElementById('status').textContent = 'Hint: Next suggested move highlighted. Note: Multiple solutions possible.';
   } else {
-    document.getElementById('status').textContent = 'Off the intended path. Try undoing moves.';
+    document.getElementById('status').textContent = 'Off the intended path. Try undoing moves. Note: Multiple solutions possible.';
   }
 }
 
@@ -426,39 +760,98 @@ function updateStars() {
   document.getElementById('stars').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
 }
 
-// ==================== OTHER FUNCTIONS (unchanged) ====================
-function updateHighlights() { /* ... */ }
-function toggleMarkMode() { /* ... */ }
-function clearMarks() { /* ... */ }
-function undoMove() { /* ... */ }
-function saveCompletion(dateStr, elapsed) { /* ... */ }
+function updateHighlights() {
+  document.querySelectorAll('.cell').forEach(el => {
+    const key = `${el.dataset.r},${el.dataset.c}`;
+    el.classList.toggle('highlight', highlights.has(key));
+  });
+}
+
+function toggleMarkMode() {
+  markMode = !markMode;
+  const btn = document.getElementById('mark-toggle');
+  btn.textContent = markMode ? '✏️ Mark: ON' : '✏️ Mark: OFF';
+  btn.classList.toggle('mark-mode-on', markMode);
+  if (!markMode) {
+    marked = Array(currentPuzzle.size).fill().map(()=>Array(currentPuzzle.size).fill(0));
+    refreshCells();
+  }
+  document.getElementById('clear-marks').disabled = !markMode || !marked.flat().some(color => color > 0);
+}
+
+function clearMarks() {
+  marked = Array(currentPuzzle.size).fill().map(()=>Array(currentPuzzle.size).fill(0));
+  refreshCells();
+  document.getElementById('clear-marks').disabled = true;
+}
+
+function undoMove() {
+  if (!history.length) return;
+  const prev = history.pop();
+  visited = prev.visited.map(row=>[...row]);
+  currentPos = {...prev.currentPos};
+  moveHistory.pop();
+  highlights.clear();
+  if (currentPos.r !== -1) {
+    const step = currentPuzzle.grid[currentPos.r][currentPos.c];
+    [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc]) => {
+      const nr = currentPos.r + dr*step, nc = currentPos.c + dc*step;
+      if (nr>=0 && nr<currentPuzzle.size && nc>=0 && nc<currentPuzzle.size && !visited[nr][nc])
+        highlights.add(`${nr},${nc}`);
+    });
+  }
+  refreshCells();
+  updateHighlights();
+  document.getElementById('undo-btn').disabled = !history.length;
+}
+
+function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const ss = s % 60;
+  return `${m}:${ss.toString().padStart(2,'0')}`;
+}
+
+function saveCompletion(dateStr, elapsed) {
+  let stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {completed: {}};
+  stats.completed[dateStr] = {time: Math.min(stats.completed[dateStr]?.time || Infinity, elapsed), hints: hintCount};
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+}
 
 function shareResults() {
-  const elapsed = isAlreadySolved 
-    ? JSON.parse(localStorage.getItem(STATS_KEY)).completed[puzzleDateStr].time 
-    : Date.now() - startTime;
-
+  const elapsed = Date.now() - startTime;
   const timeStr = formatTime(elapsed);
   const [year, monthStr, dayStr] = puzzleDateStr.split('-');
-  const shareDate = `${parseInt(monthStr)}/${parseInt(dayStr)}/${year}`;
+  const month = parseInt(monthStr);
+  const day = parseInt(dayStr);
+  const shareDate = `${month}/${day}/${year}`;
   const size = currentPuzzle.size;
   const stars = 3 - Math.min(hintCount, 3);
   const starText = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+  const text = `🎉 Grasshopper Daily – ${shareDate} (${size}×${size}) Solved! ${starText}\n⏱ Time: ${timeStr}\nPlay here: https://grasshoppergame.com\n#GrasshopperDaily`;
 
-  const text = `🎉 Grasshopper Daily – ${shareDate} (${size}×${size}) Solved! ${starText}\n` +
-               `⏱ Time: ${timeStr}\n` +
-               `💡 Hints used: ${hintCount}\n` +
-               `Play here: https://grasshoppergame.com\n#GrasshopperDaily`;
-
-  navigator.clipboard.writeText(text).then(() => alert('Copied!')).catch(() => alert('Copy failed'));
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Copied to clipboard! Paste into Discord or X.');
+  }).catch(() => {
+    alert('Copy failed – please copy manually:\n' + text);
+  });
 }
 
 function closeModal() {
   document.getElementById('victory-modal').style.display = 'none';
 }
 
-// ==================== INIT ====================
+// Close modal on outside click
+document.getElementById('victory-modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('victory-modal')) {
+    closeModal();
+  }
+});
+
+// Init
 showMenu();
 </script>
 </body>
+
 </html>
+
