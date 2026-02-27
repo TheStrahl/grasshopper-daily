@@ -42,30 +42,24 @@
   }
   button:hover { transform: translateY(-2px); }
 
-  #level-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-    margin-top: 20px;
+  #clockContainer {
+    margin: 20px auto;
+    position: relative;
+    width: 500px;
+    height: 500px;
   }
-  .level-btn {
-    padding: 16px 12px;
-    background: rgba(255,255,255,0.15);
-    border: 2px solid rgba(255,255,255,0.3);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .level-btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.05); }
-  .level-btn.complete { border-color: #2ecc71; background: rgba(46,204,113,0.2); }
-
   #clockCanvas {
-    border-radius: 20px;
-    box-shadow: 0 0 30px rgba(0,0,0,0.6);
-    background: #111;
+    border-radius: 50%;
+    box-shadow: 0 0 40px rgba(0,0,0,0.7);
+    background: #0a0a0a;
   }
 
   #status { font-size: 1.3rem; margin: 15px 0; min-height: 1.8em; }
+
+  .back-btn {
+    margin-top: 20px;
+    background: #34495e;
+  }
 </style>
 </head>
 <body>
@@ -92,14 +86,18 @@
   </div>
 
   <div id="game-screen" style="display:none;">
-    <button onclick="backToLevelSelect()">← Back to Levels</button>
+    <button onclick="backToLevelSelect()" class="back-btn">← Back to Levels</button>
     <h2 id="current-level-title"></h2>
-    <canvas id="clockCanvas" width="500" height="500"></canvas>
+    
+    <div id="clockContainer">
+      <canvas id="clockCanvas" width="500" height="500"></canvas>
+    </div>
+
     <div id="status">Click any node to begin</div>
     <button onclick="resetCurrentPuzzle()">🔄 Reset Puzzle</button>
   </div>
 
-  <button onclick="window.location.href='index.html'">← Back to Grasshopper Daily</button>
+  <button onclick="window.location.href='index.html'" class="back-btn">← Back to Grasshopper Daily</button>
 </div>
 
 <script>
@@ -111,9 +109,16 @@ const STATS_KEY = 'clockconundrum_stats';
 let currentDifficulty = "Beginner";
 let currentLevelData = null;
 let currentLevelNum = 0;
-let puzzleDateStr = null; // not used for daily, but kept for save key
+let currentNumbers = [];
+let currentSolutionOrder = [];
+let isAlreadySolved = false;
 
-// ==================== LOAD DIFFICULTY ====================
+// ==================== CANVAS SETUP ====================
+const canvas = document.getElementById('clockCanvas');
+const ctx = canvas.getContext('2d');
+const cx = 250, cy = 250, radius = 200;
+
+// ==================== LOAD DIFFICULTY & LEVELS ====================
 async function loadDifficulty() {
   currentDifficulty = document.getElementById('difficulty-dropdown').value;
   document.getElementById('selected-difficulty').textContent = currentDifficulty + " Levels";
@@ -124,7 +129,6 @@ async function loadDifficulty() {
   const grid = document.getElementById('level-grid');
   grid.innerHTML = '';
 
-  // Try loading up to 30 levels per difficulty
   for (let i = 1; i <= 30; i++) {
     const num = i.toString().padStart(3, '0');
     const url = `${LEVELS_FOLDER}${currentDifficulty}/Level_${num}.json`;
@@ -133,12 +137,10 @@ async function loadDifficulty() {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-
         const div = document.createElement('div');
         div.className = 'level-btn';
         div.innerHTML = `Level ${num}<br><small>Unplayed</small>`;
 
-        // Check if completed
         const stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {completed: {}};
         const key = `${currentDifficulty}_${num}`;
         if (stats.completed[key]) {
@@ -162,6 +164,8 @@ function backToDifficulty() {
 function startLevel(data, levelNum) {
   currentLevelData = data;
   currentLevelNum = levelNum;
+  currentNumbers = [...data.numbers];
+  currentSolutionOrder = data.solution ? [...data.solution] : [];
 
   document.getElementById('level-select').style.display = 'none';
   document.getElementById('game-screen').style.display = 'block';
@@ -170,61 +174,171 @@ function startLevel(data, levelNum) {
   drawClock();
 }
 
-// ==================== CLOCK DRAWING ====================
-const canvas = document.getElementById('clockCanvas');
-const ctx = canvas.getContext('2d');
-
+// ==================== DRAW CLOCK (with hands + legal highlight) ====================
 function drawClock() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-  const radius = 210;
 
-  // Background circle
+  // Main clock face
   ctx.beginPath();
   ctx.arc(cx, cy, radius + 30, 0, Math.PI * 2);
-  ctx.fillStyle = '#111';
+  ctx.fillStyle = '#111111';
   ctx.fill();
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 20;
+  ctx.stroke();
 
-  const numNodes = currentLevelData.numbers.length;
+  const numNodes = currentNumbers.length;
   const angleStep = (Math.PI * 2) / numNodes;
+
+  // Draw nodes + highlight legal ones
+  let legalNodes = [];
+  if (currentSolutionOrder.length > 0 && currentSolutionOrder.length < numNodes) {
+    const last = currentSolutionOrder[currentSolutionOrder.length - 1];
+    const step = currentNumbers[last];
+    for (let i = 0; i < numNodes; i++) {
+      if (currentNumbers[i] !== 0) continue;
+      const diff = Math.abs(i - last);
+      if (Math.min(diff, numNodes - diff) === step) legalNodes.push(i);
+    }
+  }
 
   for (let i = 0; i < numNodes; i++) {
     const angle = i * angleStep - Math.PI / 2;
     const x = cx + radius * Math.cos(angle);
     const y = cy + radius * Math.sin(angle);
 
-    const value = currentLevelData.numbers[i];
+    const isLegal = legalNodes.includes(i);
+    const isFilled = currentNumbers[i] !== 0;
 
+    // Node
     ctx.beginPath();
-    ctx.arc(x, y, 32, 0, Math.PI * 2);
-    ctx.fillStyle = value === 0 ? '#555' : '#00ffcc';
+    ctx.arc(x, y, 28, 0, Math.PI * 2);
+    ctx.fillStyle = isFilled ? '#00cc88' : (isLegal ? '#44ff88' : '#555555');
     ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 5;
+    ctx.strokeStyle = isLegal ? '#aaffaa' : '#ffffff';
+    ctx.lineWidth = isLegal ? 6 : 3;
     ctx.stroke();
 
+    // Number
     ctx.fillStyle = '#000';
-    ctx.font = 'bold 28px Arial';
+    ctx.font = 'bold 26px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(value || '', x, y);
+    ctx.fillText(currentNumbers[i] || '', x, y);
+  }
+
+  // Draw Hands
+  if (currentSolutionOrder.length > 0) {
+    const hourPos = currentSolutionOrder[currentSolutionOrder.length - 1];
+    const minutePos = (hourPos + currentNumbers[hourPos]) % numNodes;
+
+    drawHand(hourPos, '#ffdd00', 8, 0.75);   // Hour hand (thicker, shorter)
+    drawHand(minutePos, '#00ddff', 5, 0.92); // Minute hand
   }
 }
 
-function resetCurrentPuzzle() {
-  // Reload the same level data to reset
-  startLevel(currentLevelData, currentLevelNum);
+function drawHand(pos, color, width, lengthFactor) {
+  const numNodes = currentNumbers.length;
+  const angleStep = (Math.PI * 2) / numNodes;
+  const angle = pos * angleStep - Math.PI / 2;
+
+  const x = cx + radius * lengthFactor * Math.cos(angle);
+  const y = cy + radius * lengthFactor * Math.sin(angle);
+
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(x, y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.stroke();
 }
 
-// ==================== BACK BUTTONS ====================
+// ==================== CLICK HANDLING ====================
+canvas.addEventListener('click', (e) => {
+  if (!currentLevelData) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  const numNodes = currentNumbers.length;
+  const angleStep = (Math.PI * 2) / numNodes;
+
+  for (let i = 0; i < numNodes; i++) {
+    const angle = i * angleStep - Math.PI / 2;
+    const nodeX = cx + radius * Math.cos(angle);
+    const nodeY = cy + radius * Math.sin(angle);
+
+    const dist = Math.hypot(clickX - nodeX, clickY - nodeY);
+    if (dist < 35) {  // clicked this node
+      handleNodeClick(i);
+      return;
+    }
+  }
+});
+
+function handleNodeClick(index) {
+  if (currentNumbers[index] !== 0) return; // already filled
+
+  if (currentSolutionOrder.length > 0) {
+    const last = currentSolutionOrder[currentSolutionOrder.length - 1];
+    const step = currentNumbers[last];
+    const diff = Math.abs(index - last);
+    if (Math.min(diff, currentNumbers.length - diff) !== step) {
+      alert("Illegal move! Must be exactly the step value away.");
+      return;
+    }
+  }
+
+  const num = prompt("Enter number (1-9):", "");
+  const val = parseInt(num);
+  if (val >= 1 && val <= 9) {
+    currentNumbers[index] = val;
+    currentSolutionOrder.push(index);
+    drawClock();
+
+    if (currentNumbers.every(n => n !== 0)) {
+      // Puzzle complete!
+      const timeTaken = 999; // placeholder - you can add real timer later
+      saveCompletion(timeTaken);
+      showVictory();
+    }
+  }
+}
+
+function showVictory() {
+  alert(`🎉 Level Complete!\nTime: ${formatTime(999)}\nHints used: 0\n\n(Share feature coming next)`);
+  backToLevelSelect();
+}
+
+// ==================== OTHER FUNCTIONS ====================
+function resetCurrentPuzzle() {
+  currentNumbers = [...currentLevelData.numbers];
+  currentSolutionOrder = [];
+  drawClock();
+}
+
 function backToLevelSelect() {
   document.getElementById('game-screen').style.display = 'none';
   document.getElementById('level-select').style.display = 'block';
 }
 
-// ==================== INIT ====================
-showMenu(); // placeholder - you can expand menu if wanted
+function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return `${m}:${(s%60).toString().padStart(2,'0')}`;
+}
+
+function saveCompletion(time) {
+  const stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {completed: {}};
+  const key = `${currentDifficulty}_${currentLevelNum.toString().padStart(3,'0')}`;
+  stats.completed[key] = {time: time, hints: 0};
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+}
+
+// Init - start with difficulty select
+document.getElementById('difficulty-select').style.display = 'block';
 </script>
 </body>
 </html>
