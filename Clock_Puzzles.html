@@ -84,9 +84,9 @@
   </div>
 
   <div id="level-select" style="display:none;">
+    <button onclick="backToDifficulty()" class="back-btn">← Back to Difficulty</button>
     <h2 id="selected-difficulty"></h2>
     <div id="level-grid"></div>
-    <button onclick="backToDifficulty()">← Back to Difficulty</button>
   </div>
 
   <div id="game-screen" style="display:none;">
@@ -198,6 +198,8 @@ function selectDifficulty(diff) {
   const grid = document.getElementById('level-grid');
   grid.innerHTML = '';
 
+  const stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {completed: {}};
+
   for (let i = 1; i <= 50; i++) {
     const num = i.toString().padStart(3, '0');
     const url = `${LEVELS_FOLDER}${currentDifficulty}/Level_${num}.json`;
@@ -209,7 +211,10 @@ function selectDifficulty(diff) {
     fetch(url, { method: 'HEAD' })
       .then(res => {
         if (res.ok) {
-          div.innerHTML = `Level ${num}<br><small>Unplayed</small>`;
+          const key = `${currentDifficulty}_${num}`;
+          const isCompleted = !!stats.completed[key];
+          div.innerHTML = `Level ${num}<br><small>${isCompleted ? 'Completed' : 'Unplayed'}</small>`;
+          if (isCompleted) div.classList.add('complete');
           div.onclick = () => loadAndStartLevel(url, i);
         } else {
           div.classList.add('disabled');
@@ -334,7 +339,7 @@ function drawClock() {
 
 function drawHand(angle, color, width, lengthFactor) {
   const x = cx + radius * lengthFactor * Math.cos(angle);
-  const y = cy + radius * lengthFactor * Math.sin(angle);
+  const y = cy + radius * Math.sin(angle);
 
   ctx.beginPath();
   ctx.moveTo(cx, cy);
