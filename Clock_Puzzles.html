@@ -14,16 +14,56 @@
            background:linear-gradient(145deg,#e67e22,#d35400); color:white; cursor:pointer; 
            margin:8px 0; width:100%; max-width:340px; }
   button:hover { transform:translateY(-3px); }
+
   #difficulty-buttons { display:flex; flex-direction:column; align-items:center; gap:12px; margin:25px 0; }
   #level-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-top:20px; }
   .level-btn { padding:18px 12px; background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.3); 
                border-radius:12px; cursor:pointer; transition:all 0.2s; }
   .level-btn:hover { background:rgba(255,255,255,0.3); transform:scale(1.08); border-color:#ffeb3b; }
   .level-btn.complete { border-color:#2ecc71; background:rgba(46,204,113,0.25); }
+
   #clockContainer { margin:20px auto; position:relative; width:500px; height:500px; }
-  #clockCanvas { border-radius:50%; box-shadow:0 0 40px rgba(0,0,0,0.7); background:#0a0a0a; }
+  #clockCanvas { border-radius:50%; box-shadow:0 0 40px rgba(0,0,0,0.7); }
+
   #status { font-size:1.3rem; margin:15px 0; min-height:1.8em; color:#ffeb3b; }
-  .debug { color:#ffeb3b; font-size:0.95rem; background:rgba(0,0,0,0.4); padding:10px; border-radius:8px; margin:10px 0; text-align:left; white-space:pre-wrap; }
+
+  /* Victory Modal */
+  #victory-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 400;
+    align-items: center;
+    justify-content: center;
+  }
+  #victory-content {
+    background: #2c3e50;
+    padding: 30px;
+    border-radius: 20px;
+    max-width: 90%;
+    text-align: center;
+  }
+
+  /* Failure Modal */
+  #failure-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 400;
+    align-items: center;
+    justify-content: center;
+  }
+  #failure-content {
+    background: #2c3e50;
+    padding: 30px;
+    border-radius: 20px;
+    max-width: 90%;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -45,7 +85,6 @@
 
   <div id="level-select" style="display:none;">
     <h2 id="selected-difficulty"></h2>
-    <div id="debug-info" class="debug">Scanning for levels...</div>
     <div id="level-grid"></div>
     <button onclick="backToDifficulty()">← Back to Difficulty</button>
   </div>
@@ -67,6 +106,28 @@
   <button onclick="window.location.href='index.html'" class="back-btn">← Back to Grasshopper Daily</button>
 </div>
 
+<!-- Victory Modal -->
+<div id="victory-modal">
+  <div id="victory-content">
+    <h2>🎉 Level Complete!</h2>
+    <p>Time: <span id="victory-time"></span></p>
+    <p>Hints used: <span id="victory-hints"></span></p>
+    <button onclick="shareResults()">📤 Share Result</button>
+    <button onclick="backToLevelSelectFromVictory()" style="background:#34495e;margin-left:10px;">Back to Levels</button>
+  </div>
+</div>
+
+<!-- Failure Modal -->
+<div id="failure-modal">
+  <div id="failure-content">
+    <h2>😞 Stuck!</h2>
+    <p>Time: <span id="failure-time"></span></p>
+    <p>Hints used: <span id="failure-hints"></span></p>
+    <button onclick="resetCurrentPuzzleFromFailure()">🔄 Reset Puzzle</button>
+    <button onclick="backToLevelSelectFromFailure()" style="background:#34495e;margin-left:10px;">Back to Levels</button>
+  </div>
+</div>
+
 <!-- How to Play Modal -->
 <div id="howto-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:300;align-items:center;justify-content:center;">
   <div style="background:#2c3e50;padding:25px;border-radius:16px;max-width:90%;max-height:85vh;overflow-y:auto;text-align:left;">
@@ -85,15 +146,41 @@
 <script>
 // ==================== CONFIG ====================
 const LEVELS_FOLDER = 'Clock_Levels/';
+const STATS_KEY = 'clockconundrum_stats';
 
 // ==================== STATE ====================
 let currentDifficulty = "";
 let currentLevelData = null;
 let currentLevelNum = 0;
+let originalNumbers = [];
 let currentNumbers = [];
 let currentSolutionOrder = [];
 let hintCount = 0;
 let startTime = 0;
+let hoveredNode = -1;
+
+// Hand animation
+let currentHourAngle = 0;
+let currentMinuteAngle = 0;
+let targetHourAngle = 0;
+let targetMinuteAngle = 0;
+let handAnimStart = 0;
+let handAnimDuration = 400; // ms
+let animStartHourAngle = 0;
+let animStartMinuteAngle = 0;
+let spreadTargetHourAngle = 0;
+let spreadTargetMinuteAngle = 0;
+let animationPhase = 'none'; // 'none', 'converge', 'spread'
+let isAnimating = false;
+
+// Audio
+const bgMusic = new Audio('Ambient.mp3');
+bgMusic.loop = true;
+bgMusic.volume = 0.3;
+const clickSound = new Audio('Switch2.ogg');
+clickSound.volume = 0.5;
+const failSound = new Audio('Buzzer.wav');
+failSound.volume = 0.5;
 
 // ==================== CANVAS SETUP ====================
 const canvas = document.getElementById('clockCanvas');
@@ -104,8 +191,6 @@ const cx = 250, cy = 250, radius = 200;
 function selectDifficulty(diff) {
   currentDifficulty = diff;
   document.getElementById('selected-difficulty').textContent = diff + " Levels";
-  const debug = document.getElementById('debug-info');
-  debug.innerHTML = `Scanning Clock_Levels/${diff}/...\n`;
 
   document.getElementById('difficulty-select').style.display = 'none';
   document.getElementById('level-select').style.display = 'block';
@@ -113,45 +198,57 @@ function selectDifficulty(diff) {
   const grid = document.getElementById('level-grid');
   grid.innerHTML = '';
 
-  loadLevelsOneByOne(1, debug);
-}
-
-async function loadLevelsOneByOne(i, debug) {
-  const num = i.toString().padStart(3, '0');
-  const url = `${LEVELS_FOLDER}${currentDifficulty}/Level_${num}.json`;
-
-  debug.innerHTML += `Trying: ${url}<br>`;
-
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Not found");
-
-    const data = await res.json();
-    debug.innerHTML += `✓ Found Level ${num}<br>`;
+  for (let i = 1; i <= 50; i++) {
+    const num = i.toString().padStart(3, '0');
+    const url = `${LEVELS_FOLDER}${currentDifficulty}/Level_${num}.json`;
 
     const div = document.createElement('div');
     div.className = 'level-btn';
-    div.innerHTML = `Level ${num}<br><small>Unplayed</small>`;
+    div.innerHTML = `Level ${num}<br><small>Checking...</small>`;
 
-    const stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {completed: {}};
-    const key = `${currentDifficulty}_${num}`;
-    if (stats.completed[key]) {
-      div.classList.add('complete');
-      div.innerHTML = `Level ${num}<br><small style="color:#2ecc71">✓ Complete</small>`;
-    }
+    fetch(url, { method: 'HEAD' })
+      .then(res => {
+        if (res.ok) {
+          div.innerHTML = `Level ${num}<br><small>Unplayed</small>`;
+          div.onclick = () => loadAndStartLevel(url, i);
+        } else {
+          div.classList.add('disabled');
+          div.innerHTML = `Level ${num}<br><small style="color:#cccccc">Does not exist yet</small>`;
+          div.style.cursor = 'not-allowed';
+        }
+      })
+      .catch(() => {
+        div.classList.add('disabled');
+        div.innerHTML = `Level ${num}<br><small style="color:#cccccc">Does not exist yet</small>`;
+        div.style.cursor = 'not-allowed';
+      });
 
-    div.onclick = () => startLevel(data, i);
-    document.getElementById('level-grid').appendChild(div);
-
-    // Continue to next level
-    loadLevelsOneByOne(i + 1, debug);
-
-  } catch (e) {
-    debug.innerHTML += `✗ Stopped at Level ${num} (no more files)<br>`;
-    if (i === 1) {
-      debug.innerHTML += `<br><b>No levels found for ${currentDifficulty}.</b><br>Expected: Clock_Levels/${currentDifficulty}/Level_001.json`;
-    }
+    grid.appendChild(div);
   }
+}
+
+async function loadAndStartLevel(url, levelNum) {
+  const res = await fetch(url);
+  const data = await res.json();
+  startLevel(data, levelNum);
+}
+
+function startLevel(data, levelNum) {
+  currentLevelData = data;
+  currentLevelNum = levelNum;
+  originalNumbers = [...data.numbers];
+  currentNumbers = [...data.numbers];
+  currentSolutionOrder = [];
+  hintCount = 0;
+  startTime = Date.now();
+  isAnimating = false;
+  animationPhase = 'none';
+
+  document.getElementById('level-select').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+  document.getElementById('current-level-title').textContent = `${currentDifficulty} • Level ${levelNum.toString().padStart(3,'0')}`;
+
+  setTimeout(drawClock, 50);
 }
 
 function backToDifficulty() {
@@ -159,32 +256,22 @@ function backToDifficulty() {
   document.getElementById('difficulty-select').style.display = 'block';
 }
 
-// ==================== START LEVEL ====================
-function startLevel(data, levelNum) {
-  currentLevelData = data;
-  currentLevelNum = levelNum;
-  currentNumbers = [...data.numbers];
-  currentSolutionOrder = [];
-  hintCount = 0;
-  startTime = Date.now();
-
-  document.getElementById('level-select').style.display = 'none';
-  document.getElementById('game-screen').style.display = 'block';
-  document.getElementById('current-level-title').textContent = `${currentDifficulty} • Level ${levelNum.toString().padStart(3,'0')}`;
-
-  drawClock();
-}
-
 // ==================== DRAW CLOCK ====================
 function drawClock() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  const grad = ctx.createRadialGradient(cx, cy, 80, cx, cy, radius + 70);
+  grad.addColorStop(0, '#1e2a44');
+  grad.addColorStop(1, '#0d1426');
   ctx.beginPath();
-  ctx.arc(cx, cy, radius + 35, 0, Math.PI * 2);
-  ctx.fillStyle = '#0f0f0f';
+  ctx.arc(cx, cy, radius + 70, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
   ctx.fill();
-  ctx.strokeStyle = '#555';
-  ctx.lineWidth = 25;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 32, 0, Math.PI * 2);
+  ctx.strokeStyle = '#556677';
+  ctx.lineWidth = 28;
   ctx.stroke();
 
   const numNodes = currentNumbers.length;
@@ -193,12 +280,14 @@ function drawClock() {
   let legalNodes = [];
   if (currentSolutionOrder.length > 0 && currentSolutionOrder.length < numNodes) {
     const last = currentSolutionOrder[currentSolutionOrder.length - 1];
-    const step = currentNumbers[last];
+    const step = originalNumbers[last];
     for (let i = 0; i < numNodes; i++) {
-      if (currentNumbers[i] !== 0) continue;
+      if (currentNumbers[i] === 0) continue;
       const diff = Math.abs(i - last);
       if (Math.min(diff, numNodes - diff) === step) legalNodes.push(i);
     }
+  } else if (currentSolutionOrder.length === 0) {
+    for (let i = 0; i < numNodes; i++) legalNodes.push(i);
   }
 
   for (let i = 0; i < numNodes; i++) {
@@ -207,25 +296,114 @@ function drawClock() {
     const y = cy + radius * Math.sin(angle);
 
     const isLegal = legalNodes.includes(i);
-    const isFilled = currentNumbers[i] !== 0;
+    const isVisited = currentNumbers[i] === 0;
+    const isHovered = (i === hoveredNode);
+
+    const drawRadius = isHovered ? 34 : 30;
 
     ctx.beginPath();
-    ctx.arc(x, y, 30, 0, Math.PI * 2);
-    ctx.fillStyle = isFilled ? '#00cc88' : (isLegal ? '#44ff88' : '#444444');
+    ctx.arc(x, y, drawRadius, 0, Math.PI * 2);
+    ctx.fillStyle = isVisited ? '#555555' : '#f0f0f0';
     ctx.fill();
-    ctx.strokeStyle = isLegal ? '#aaffaa' : '#ffffff';
-    ctx.lineWidth = isLegal ? 7 : 4;
+
+    ctx.strokeStyle = isHovered ? '#ffff00' : (isLegal ? '#1e8e1e' : '#bbbbbb');
+    ctx.lineWidth = isHovered ? 8 : (isLegal ? 6 : 3);
     ctx.stroke();
 
-    ctx.fillStyle = '#000';
-    ctx.font = 'bold 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(currentNumbers[i] || '', x, y);
+    if (!isVisited) {
+      ctx.fillStyle = '#111';
+      ctx.font = 'bold 26px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(originalNumbers[i], x, y);
+    }
+  }
+
+  // Animated Hands
+  if (currentSolutionOrder.length > 0) {
+    const now = Date.now();
+    const elapsed = now - handAnimStart;
+    const progress = Math.min(1, elapsed / handAnimDuration);
+    const easedProgress = easeInOutCubic(progress);
+    currentHourAngle = lerpAngle(animStartHourAngle, targetHourAngle, easedProgress, 'cw');
+    currentMinuteAngle = lerpAngle(animStartMinuteAngle, targetMinuteAngle, easedProgress, 'ccw');
+    drawHand(currentHourAngle, '#ffcc00', 10, 0.70);
+    drawHand(currentMinuteAngle, '#00eeff', 6, 0.92);
   }
 }
 
-// ==================== CLICK HANDLING ====================
+function drawHand(angle, color, width, lengthFactor) {
+  const x = cx + radius * lengthFactor * Math.cos(angle);
+  const y = cy + radius * lengthFactor * Math.sin(angle);
+
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(x, y);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+// ==================== ANIMATION LOOP ====================
+function animateHands() {
+  drawClock();
+  const now = Date.now();
+  const elapsed = now - handAnimStart;
+  if (elapsed < handAnimDuration) {
+    requestAnimationFrame(animateHands);
+  } else {
+    // Animation segment done
+    if (animationPhase === 'converge') {
+      // Start spread phase
+      animationPhase = 'spread';
+      currentHourAngle = targetHourAngle;
+      currentMinuteAngle = targetMinuteAngle;
+      targetHourAngle = spreadTargetHourAngle;
+      targetMinuteAngle = spreadTargetMinuteAngle;
+      animStartHourAngle = currentHourAngle;
+      animStartMinuteAngle = currentMinuteAngle;
+      handAnimStart = Date.now();
+      requestAnimationFrame(animateHands); // continue
+    } else if (animationPhase === 'spread') {
+      animationPhase = 'none';
+      isAnimating = false;
+    }
+  }
+}
+
+// ==================== HOVER & CLICK ====================
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+
+  const numNodes = currentNumbers.length;
+  const angleStep = (Math.PI * 2) / numNodes;
+  let newHover = -1;
+
+  for (let i = 0; i < numNodes; i++) {
+    const angle = i * angleStep - Math.PI / 2;
+    const nodeX = cx + radius * Math.cos(angle);
+    const nodeY = cy + radius * Math.sin(angle);
+
+    if (Math.hypot(mouseX - nodeX, mouseY - nodeY) < 38) {
+      newHover = i;
+      break;
+    }
+  }
+
+  if (newHover !== hoveredNode) {
+    hoveredNode = newHover;
+    drawClock();
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  hoveredNode = -1;
+  drawClock();
+});
+
 canvas.addEventListener('click', (e) => {
   const rect = canvas.getBoundingClientRect();
   const clickX = e.clientX - rect.left;
@@ -239,7 +417,7 @@ canvas.addEventListener('click', (e) => {
     const nodeX = cx + radius * Math.cos(angle);
     const nodeY = cy + radius * Math.sin(angle);
 
-    if (Math.hypot(clickX - nodeX, clickY - nodeY) < 38) {
+    if (Math.hypot(clickX - nodeX, clickY - nodeY) < 40) {
       handleNodeClick(i);
       return;
     }
@@ -247,13 +425,14 @@ canvas.addEventListener('click', (e) => {
 });
 
 function handleNodeClick(index) {
-  if (currentNumbers[index] !== 0) return;
+  if (currentNumbers[index] === 0) return;
 
   if (currentSolutionOrder.length > 0) {
     const last = currentSolutionOrder[currentSolutionOrder.length - 1];
-    const step = currentNumbers[last];
+    const step = originalNumbers[last];
     const diff = Math.abs(index - last);
     if (Math.min(diff, currentNumbers.length - diff) !== step) {
+      failSound.play().catch(e => console.log('Fail sound play failed:', e));
       alert("Illegal move! Must be exactly the step value away.");
       return;
     }
@@ -261,7 +440,70 @@ function handleNodeClick(index) {
 
   currentNumbers[index] = 0;
   currentSolutionOrder.push(index);
-  drawClock();
+
+  const numNodes = currentNumbers.length;
+  const angleStep = (Math.PI * 2) / numNodes;
+
+  const now = Date.now();
+
+  if (currentSolutionOrder.length > 1) {
+    // Advance previous animation to end
+    const elapsed = now - handAnimStart;
+    const progress = Math.min(1, elapsed / handAnimDuration);
+    const easedProgress = easeInOutCubic(progress);
+    currentHourAngle = lerpAngle(animStartHourAngle, targetHourAngle, easedProgress, 'cw');
+    currentMinuteAngle = lerpAngle(animStartMinuteAngle, targetMinuteAngle, easedProgress, 'ccw');
+  } else {
+    // First click, start from 12 o'clock
+    currentHourAngle = -Math.PI / 2;
+    currentMinuteAngle = -Math.PI / 2;
+  }
+
+  const clickedAngle = index * angleStep - Math.PI / 2;
+
+  // Set for converge phase
+  animationPhase = 'converge';
+  targetHourAngle = clickedAngle;
+  targetMinuteAngle = clickedAngle;
+  animStartHourAngle = currentHourAngle;
+  animStartMinuteAngle = currentMinuteAngle;
+  handAnimStart = now;
+
+  // Calculate spread targets
+  const step = originalNumbers[index];
+  const hourTargetIndex = (index + step) % numNodes;
+  const minuteTargetIndex = (index - step + numNodes) % numNodes;
+  spreadTargetHourAngle = hourTargetIndex * angleStep - Math.PI / 2;
+  spreadTargetMinuteAngle = minuteTargetIndex * angleStep - Math.PI / 2;
+
+  // Start the animation loop
+  if (!isAnimating) {
+    isAnimating = true;
+    requestAnimationFrame(animateHands);
+  }
+
+  clickSound.play().catch(e => console.log('Click sound play failed:', e));
+
+  // Check if stuck
+  if (currentSolutionOrder.length < numNodes) {
+    const last = currentSolutionOrder[currentSolutionOrder.length - 1];
+    const step = originalNumbers[last];
+    let hasLegalMove = false;
+    for (let i = 0; i < numNodes; i++) {
+      if (currentNumbers[i] !== 0) {
+        const diff = Math.abs(i - last);
+        if (Math.min(diff, numNodes - diff) === step) {
+          hasLegalMove = true;
+          break;
+        }
+      }
+    }
+    if (!hasLegalMove) {
+      const timeTaken = Date.now() - startTime;
+      showFailure(timeTaken);
+      return;
+    }
+  }
 
   if (currentNumbers.every(n => n === 0)) {
     const timeTaken = Date.now() - startTime;
@@ -270,17 +512,171 @@ function handleNodeClick(index) {
   }
 }
 
-// ==================== HINT, VICTORY, SHARE, RESET ====================
-function getHint() { /* your working version */ }
-function showVictory(timeTaken) { /* your working version */ }
-function shareResults() { /* your working version */ }
-function resetCurrentPuzzle() { /* your working version */ }
-function backToLevelSelect() { /* your working version */ }
-function backToDifficulty() { /* your working version */ }
-function showHowTo() { /* your working version */ }
+// ==================== HINT ====================
+function getHint() {
+  hintCount++;
+  const len = currentSolutionOrder.length;
+
+  if (len >= currentLevelData.solution.length) {
+    document.getElementById('status').textContent = "Beyond hint path.";
+    return;
+  }
+
+  let matches = true;
+  for (let i = 0; i < len; i++) {
+    if (currentSolutionOrder[i] !== currentLevelData.solution[i]) {
+      matches = false;
+      break;
+    }
+  }
+
+  if (matches) {
+    const next = currentLevelData.solution[len];
+    highlightHintNode(next);
+    document.getElementById('status').textContent = "Hint: Next correct node highlighted in red.";
+  } else {
+    document.getElementById('status').textContent = "Off the intended path.";
+  }
+}
+
+function highlightHintNode(index) {
+  const angleStep = (Math.PI * 2) / currentNumbers.length;
+  const angle = index * angleStep - Math.PI / 2;
+  const x = cx + radius * Math.cos(angle);
+  const y = cy + radius * Math.sin(angle);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(x, y, 38, 0, Math.PI * 2);
+  ctx.strokeStyle = '#ff4444';
+  ctx.lineWidth = 12;
+  ctx.stroke();
+  ctx.restore();
+
+  setTimeout(drawClock, 1400);
+}
+
+// ==================== VICTORY MODAL ====================
+function showVictory(timeTaken) {
+  const timeStr = formatTime(timeTaken);
+  document.getElementById('victory-time').textContent = timeStr;
+  document.getElementById('victory-hints').textContent = hintCount;
+  document.getElementById('victory-modal').style.display = 'flex';
+}
+
+function backToLevelSelectFromVictory() {
+  document.getElementById('victory-modal').style.display = 'none';
+  backToLevelSelect();
+}
+
+// ==================== FAILURE MODAL ====================
+function showFailure(timeTaken) {
+  const timeStr = formatTime(timeTaken);
+  document.getElementById('failure-time').textContent = timeStr;
+  document.getElementById('failure-hints').textContent = hintCount;
+  document.getElementById('failure-modal').style.display = 'flex';
+  failSound.play().catch(e => console.log('Fail sound play failed:', e));
+}
+
+function resetCurrentPuzzleFromFailure() {
+  document.getElementById('failure-modal').style.display = 'none';
+  resetCurrentPuzzle();
+}
+
+function backToLevelSelectFromFailure() {
+  document.getElementById('failure-modal').style.display = 'none';
+  backToLevelSelect();
+}
+
+// ==================== SHARE, RESET, BACK, HOW TO PLAY ====================
+function shareResults() {
+  const timeTaken = Date.now() - startTime;
+  const timeStr = formatTime(timeTaken);
+  const text = `🎉 Clockwork Conundrum ${currentDifficulty} Level ${currentLevelNum} Solved!\n` +
+               `⏱ Time: ${timeStr}\n` +
+               `💡 Hints used: ${hintCount}\n` +
+               `Play here: https://grasshoppergame.com/Clock_Puzzles.html\n#ClockworkConundrum`;
+
+  navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'));
+}
+
+function resetCurrentPuzzle() {
+  currentNumbers = [...currentLevelData.numbers];
+  currentSolutionOrder = [];
+  hintCount = 0;
+  startTime = Date.now();
+  // Reset hand animation states
+  currentHourAngle = 0;
+  currentMinuteAngle = 0;
+  targetHourAngle = 0;
+  targetMinuteAngle = 0;
+  animStartHourAngle = 0;
+  animStartMinuteAngle = 0;
+  spreadTargetHourAngle = 0;
+  spreadTargetMinuteAngle = 0;
+  handAnimStart = 0;
+  animationPhase = 'none';
+  isAnimating = false;
+  drawClock();
+  document.getElementById('status').textContent = "Click any node to begin";
+}
+
+function backToLevelSelect() {
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('level-select').style.display = 'block';
+}
+
+function showHowTo() {
+  document.getElementById('howto-modal').style.display = 'flex';
+}
+
+function formatTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  return `${m}:${(s%60).toString().padStart(2,'0')}`;
+}
+
+function saveCompletion(time) {
+  const stats = JSON.parse(localStorage.getItem(STATS_KEY)) || {completed: {}};
+  const key = `${currentDifficulty}_${currentLevelNum.toString().padStart(3,'0')}`;
+  stats.completed[key] = {time: time, hints: hintCount};
+  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+}
+
+function lerp(a, b, t) {
+  return a + t * (b - a);
+}
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function lerpAngle(start, target, t, direction = null) {
+  let delta = target - start;
+  delta = ((delta + Math.PI) % (2 * Math.PI)) - Math.PI; // normalize to [-PI, PI]
+  if (direction === 'cw' && delta < 0) {
+    delta += 2 * Math.PI;
+  } else if (direction === 'ccw' && delta > 0) {
+    delta -= 2 * Math.PI;
+  }
+  return start + t * delta;
+}
 
 // Init
 document.getElementById('difficulty-select').style.display = 'block';
+
+// Start background music muted on load
+bgMusic.muted = true;
+bgMusic.play().catch(e => console.log('Background music autoplay failed:', e));
+
+// Unmute and ensure playing on first user interaction
+document.addEventListener('click', () => {
+  bgMusic.muted = false;
+  if (bgMusic.paused) {
+    bgMusic.play().catch(e => console.log('Background music play failed:', e));
+  }
+}, { once: true });
+
 </script>
 </body>
 </html>
